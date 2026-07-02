@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import PreloadedImage from '../components/PreloadedImage';
+import BannerAd from '../components/BannerAd';
+import DiscordCTA from '../components/DiscordCTA';
 
 export default function InteractiveReader() {
   const { slug, capitulo } = useParams();
@@ -93,10 +95,17 @@ export default function InteractiveReader() {
         </button>
       </div>
 
+      {/* Banner Topo */}
+      {!loading && pages.length > 0 && <BannerAd position="top" />}
+
       {/* Páginas do Manhwa em Cascata */}
-      <div className="manga-pages-wrapper w-full max-w-2xl flex flex-col bg-zinc-950 shadow-2xl">
+      <div className="manga-pages-wrapper w-full max-w-2xl flex flex-col bg-zinc-950 shadow-2xl relative">
         {loading ? (
-          <div className="text-center py-10 text-zinc-500">Buscando páginas no abismo...</div>
+          <div className="w-full flex flex-col gap-1">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="w-full h-[80vh] bg-zinc-900 animate-pulse border-b border-zinc-950"></div>
+            ))}
+          </div>
         ) : pages.length === 0 ? (
           <div className="text-center py-10 text-zinc-500">Este capítulo ainda não foi traduzido.</div>
         ) : (
@@ -114,6 +123,14 @@ export default function InteractiveReader() {
           })
         )}
       </div>
+
+      {/* Funil de Retenção (Discord) e Banner Fim */}
+      {!loading && pages.length > 0 && (
+        <>
+          <DiscordCTA />
+          <BannerAd position="bottom" />
+        </>
+      )}
       
       {/* Voltar para Home */}
       <div className="mt-12 mb-8">

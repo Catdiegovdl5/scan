@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
+import SkeletonCard from '../components/SkeletonCard';
 
 export default function Home() {
   const [obras, setObras] = useState([]);
@@ -52,7 +53,8 @@ export default function Home() {
           <h2 className="text-3xl font-bold mb-8">Destaques da Semana</h2>
           <div className="manga-grid grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8">
             {loading ? (
-              <div className="col-span-full text-center py-10 text-zinc-500">Buscando catálogo no abismo...</div>
+              // Mostra 4 Skeletons enquanto carrega
+              Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)
             ) : obras.length === 0 ? (
               <div className="col-span-full text-center py-10 text-zinc-500">Nenhuma obra encontrada. Faça o upload no painel admin!</div>
             ) : (
