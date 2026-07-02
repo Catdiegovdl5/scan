@@ -12,12 +12,20 @@ export default function PreloadedImage({ src, alt, nextSrc }) {
   }, [nextSrc]);
 
   const [error, setError] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
+
+  const handleRetry = () => {
+    setError(false);
+    setRetryCount(prev => prev + 1);
+  };
+
+  const imageSrc = retryCount > 0 ? `${src}${src.includes('?') ? '&' : '?'}retry=${retryCount}` : src;
 
   return (
     <div className={`w-full bg-zinc-950 flex flex-col items-center justify-center transition-opacity duration-500 min-h-[50vh] ${loaded || error ? 'opacity-100' : 'opacity-20'}`}>
       {!error ? (
         <img
-          src={src}
+          src={imageSrc}
           alt={alt}
           loading="lazy"
           onLoad={() => setLoaded(true)}
@@ -35,7 +43,7 @@ export default function PreloadedImage({ src, alt, nextSrc }) {
           <span className="text-4xl">⚠️</span>
           <p>O abismo engoliu esta página.</p>
           <button
-            onClick={() => setError(false)}
+            onClick={handleRetry}
             className="px-4 py-2 bg-zinc-800 text-white rounded-md hover:bg-zinc-700 transition cursor-pointer pointer-events-auto"
           >
             Tentar recarregar

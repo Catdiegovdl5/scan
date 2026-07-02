@@ -78,7 +78,10 @@ export default function DragDropUploader() {
 
         const { error: storageError } = await supabase.storage
           .from('manga-pages')
-          .upload(filePath, file);
+          .upload(filePath, file, {
+            cacheControl: 'public, max-age=31536000, immutable',
+            upsert: false
+          });
 
         if (storageError) throw storageError;
 
