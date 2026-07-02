@@ -8,6 +8,8 @@ export default function InteractiveReader() {
   const navigate = useNavigate();
   const [pages, setPages] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showNav, setShowNav] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
 
   useEffect(() => {
     async function fetchPaginasDoCapitulo() {
@@ -44,7 +46,21 @@ export default function InteractiveReader() {
 
     fetchPaginasDoCapitulo();
     localStorage.setItem('historico_leitura', JSON.stringify({ slug, capitulo }));
-  }, [slug, capitulo]);
+
+    // Scroll listener for smart navbar
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      if (currentScrollY > lastScrollY && currentScrollY > 100) {
+        setShowNav(false); // Rolando para baixo
+      } else {
+        setShowNav(true);  // Rolando para cima
+      }
+      setLastScrollY(currentScrollY);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [slug, capitulo, lastScrollY]);
 
   const changeChapter = (direction) => {
     const currentCap = parseInt(capitulo || '1');
@@ -53,24 +69,24 @@ export default function InteractiveReader() {
   };
 
   return (
-    <div className="reader-container bg-black min-h-screen flex flex-col items-center py-4">
+    <div className="reader-container bg-black min-h-screen flex flex-col items-center sm:py-4">
       
-      {/* Navegação de Capítulos */}
-      <div className="navigation-bar sticky top-0 w-full max-w-2xl bg-zinc-900/90 backdrop-blur p-4 flex justify-between items-center text-white mb-6 rounded-xl shadow-2xl z-50 border border-zinc-800">
+      {/* Navegação de Capítulos Inteligente */}
+      <div className={`navigation-bar fixed top-0 w-full sm:max-w-2xl bg-zinc-950/95 backdrop-blur p-4 flex justify-between items-center text-white sm:rounded-b-xl shadow-2xl z-50 border-b sm:border border-zinc-800 transition-transform duration-300 ${showNav ? 'translate-y-0' : '-translate-y-full'}`}>
         <button onClick={() => changeChapter('prev')} className="hover:text-red-500 font-medium transition cursor-pointer flex items-center gap-2">
-          <span>⬅️</span> Anterior
+          <span>⬅️</span> <span className="hidden sm:inline">Anterior</span>
         </button>
-        <span className="font-bold text-sm uppercase tracking-wider text-center">
+        <span className="font-bold text-sm uppercase tracking-wider text-center flex-1 mx-4 truncate">
           {slug.replace('-', ' ')} <br/>
-          <span className="text-zinc-400">Capítulo {capitulo}</span>
+          <span className="text-zinc-400 text-xs">Capítulo {capitulo}</span>
         </span>
         <button onClick={() => changeChapter('next')} className="hover:text-red-500 font-medium transition cursor-pointer flex items-center gap-2">
-          Próximo <span>➡️</span>
+          <span className="hidden sm:inline">Próximo</span> <span>➡️</span>
         </button>
       </div>
 
       {/* Páginas do Manhwa em Cascata */}
-      <div className="manga-pages-wrapper w-full max-w-2xl flex flex-col bg-zinc-950 shadow-2xl">
+      <div className="manga-pages-wrapper w-full sm:max-w-2xl flex flex-col bg-zinc-950 shadow-2xl sm:mt-16">
         {loading ? (
           <div className="text-center py-10 text-zinc-500">Buscando páginas no abismo...</div>
         ) : pages.length === 0 ? (
