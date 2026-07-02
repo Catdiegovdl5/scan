@@ -43,3 +43,13 @@ CREATE TABLE historico_leitura (
     atualizado_em TIMESTAMP DEFAULT NOW(),
     UNIQUE(user_id, obra_id)
 );
+
+-- Habilitar Row Level Security (RLS)
+ALTER TABLE obras ENABLE ROW LEVEL SECURITY;
+ALTER TABLE capitulos ENABLE ROW LEVEL SECURITY;
+ALTER TABLE paginas ENABLE ROW LEVEL SECURITY;
+
+-- Criar políticas de leitura pública
+CREATE POLICY "Leitura pública de obras" ON obras FOR SELECT USING (true);
+CREATE POLICY "Leitura pública de capitulos" ON capitulos FOR SELECT USING (true);
+CREATE POLICY "Leitura pública de paginas" ON paginas FOR SELECT USING (true);

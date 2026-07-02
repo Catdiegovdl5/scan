@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import PreloadedImage from '../components/PreloadedImage';
@@ -8,6 +8,26 @@ export default function InteractiveReader() {
   const navigate = useNavigate();
   const [pages, setPages] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  const [showNav, setShowNav] = useState(true);
+  const lastScrollY = useRef(0);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      if (currentScrollY > lastScrollY.current && currentScrollY > 100) {
+        // Rolando para baixo
+        setShowNav(false);
+      } else {
+        // Rolando para cima
+        setShowNav(true);
+      }
+      lastScrollY.current = currentScrollY;
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   useEffect(() => {
     async function fetchPaginasDoCapitulo() {
@@ -53,10 +73,14 @@ export default function InteractiveReader() {
   };
 
   return (
-    <div className="reader-container bg-black min-h-screen flex flex-col items-center py-4">
+    <div className="reader-container bg-black min-h-screen flex flex-col items-center sm:py-4 px-0">
       
       {/* Navegação de Capítulos */}
-      <div className="navigation-bar sticky top-0 w-full max-w-2xl bg-zinc-900/90 backdrop-blur p-4 flex justify-between items-center text-white mb-6 rounded-xl shadow-2xl z-50 border border-zinc-800">
+      <div
+        className={`navigation-bar sticky top-0 w-full max-w-2xl bg-zinc-900/95 backdrop-blur p-4 flex justify-between items-center text-white mb-0 sm:mb-6 sm:rounded-xl shadow-2xl z-50 border-b sm:border border-zinc-800 transition-transform duration-300 ${
+          showNav ? 'translate-y-0' : '-translate-y-full'
+        }`}
+      >
         <button onClick={() => changeChapter('prev')} className="hover:text-red-500 font-medium transition cursor-pointer flex items-center gap-2">
           <span>⬅️</span> Anterior
         </button>
