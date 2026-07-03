@@ -1,3 +1,4 @@
+// src/pages/AdminDashboard.jsx
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import DragDropUploader from '../components/DragDropUploader';
@@ -8,6 +9,10 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState({ capitulosTraduzidos: 0 });
   const [activeTab, setActiveTab] = useState('desempenho'); 
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  
+  // Novos estados para controle de fluxo da interface
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   // Mock de equipe temporário para a interface
   const staff = [
@@ -16,33 +21,65 @@ export default function AdminDashboard() {
     { id: 3, nome: 'Julia', funcao: 'Cleaner', status: 'Inativo' },
   ];
 
+  // Efeito 1: Busca de dados no Supabase
   useEffect(() => {
     async function fetchDashboardData() {
-      const { data, error } = await supabase.from('obras').select('id, titulo, status, capitulos(id)');
-      if (data && !error) {
-         let totalCapitulos = 0;
-         const obrasComCount = data.map(o => {
-            const count = o.capitulos ? o.capitulos.length : 0;
-            totalCapitulos += count;
-            return {
-              id: o.id,
-              titulo: o.titulo,
-              status: o.status || 'Ativo',
-              capitulos: count,
-              cliques: Math.floor(Math.random() * 500)
-            };
-         });
-         setObras(obrasComCount);
-         setStats({ capitulosTraduzidos: totalCapitulos });
+      try {
+        setIsLoading(true);
+        setError(null);
+        
+        const { data, error: supabaseError } = await supabase
+          .from('obras')
+          .select('id, titulo, status, capitulos(id)');
+          
+        if (supabaseError) throw supabaseError;
+
+        if (data) {
+           let totalCapitulos = 0;
+           const obrasComCount = data.map(o => {
+              // Array: Uma lista organizada de itens, neste caso, a lista de capítulos retornada do banco
+              const count = o.capitulos ? o.capitulos.length : 0;
+              totalCapitulos += count;
+              return {
+                id: o.id,
+                titulo: o.titulo,
+                status: o.status || 'Ativo',
+                capitulos: count,
+                cliques: Math.floor(Math.random() * 500)
+              };
+           });
+           setObras(obrasComCount);
+           setStats({ capitulosTraduzidos: totalCapitulos });
+        }
+      } catch (err) {
+        console.error("Erro ao buscar dados:", err);
+        setError("Falha ao carregar as obras. Verifique a conexão com o banco de dados.");
+      } finally {
+        setIsLoading(false);
       }
     }
     fetchDashboardData();
   }, []);
 
+  // Efeito 2: Escotilha de fuga para fechar o Drawer com 'Escape'
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && isDrawerOpen) {
+        setIsDrawerOpen(false);
+      }
+    };
+
+    // Trigger: Um gatilho que dispara uma ação, neste caso, apertar uma tecla aciona a função
+    window.addEventListener('keydown', handleKeyDown);
+    
+    // Limpeza para evitar vazamento de memória e sobrecarga do hardware
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isDrawerOpen]);
+
   return (
     <div className="flex h-screen bg-black text-white font-sans overflow-hidden">
       
-      {/* Sidebar Lateral (Minimalista) */}
+      {/* Sidebar Lateral */}
       <aside className="w-64 bg-[#09090b] border-r border-zinc-900 p-6 flex-shrink-0 flex flex-col justify-between hidden md:flex">
         <div>
           <h2 className="text-xl font-black tracking-widest text-white uppercase mb-8 flex items-center gap-2">
@@ -50,7 +87,7 @@ export default function AdminDashboard() {
             <Link to="/">UI SCAN</Link>
           </h2>
           <nav className="space-y-1">
-            <button className="w-full flex items-center space-x-3 px-4 py-3 bg-zinc-900/40 text-white rounded-lg font-medium text-sm border border-zinc-800/50">
+            <button className="w-full flex items-center space-x-3 px-4 py-3 bg-zinc-900/40 text-white rounded-lg font-medium text-sm border border-zinc-800/50 transition hover:bg-zinc-900/60">
               <span className="text-red-500">◈</span> <span>Painel Central</span>
             </button>
             <button className="w-full flex items-center space-x-3 px-4 py-3 text-zinc-500 hover:text-white transition rounded-lg font-medium text-sm">
@@ -58,9 +95,9 @@ export default function AdminDashboard() {
             </button>
           </nav>
         </div>
-        <div className="text-xs text-zinc-700 pt-4">
+        <div className="text-xs text-zinc-700 pt-4 border-t border-zinc-900/50 mt-auto">
           Operação: Abismo<br/>
-          v2.0 Beta
+          v2.1 Beta (Build Estável)
         </div>
       </aside>
 
@@ -76,25 +113,34 @@ export default function AdminDashboard() {
             </div>
             <button 
               onClick={() => setIsDrawerOpen(true)}
-              className="bg-red-500 hover:bg-red-600 text-white font-bold px-4 py-2 md:px-5 md:py-2.5 rounded-lg text-xs md:text-sm transition cursor-pointer shadow-lg shadow-red-500/20"
+              className="bg-red-500 hover:bg-red-600 text-white font-bold px-4 py-2 md:px-5 md:py-2.5 rounded-lg text-xs md:text-sm transition-all cursor-pointer shadow-lg shadow-red-500/20 active:scale-95"
             >
               + Novo Capítulo
             </button>
           </header>
 
+          {/* Tratamento de Erro Visual */}
+          {error && (
+            <div className="mb-6 p-4 bg-red-500/10 border border-red-500/50 rounded-xl text-red-400 text-sm font-medium flex items-center gap-3">
+              <span className="font-black text-lg">!</span> {error}
+            </div>
+          )}
+
           {/* 1. CENTRALIZAÇÃO DE MÉTRICAS */}
           <section className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-            <div className="bg-[#09090b] border border-zinc-900 p-5 rounded-xl">
+            <div className="bg-[#09090b] border border-zinc-900 p-5 rounded-xl hover:border-zinc-800 transition">
               <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Cliques TikTok (Hoje)</div>
               <div className="text-2xl font-black text-white">1.240</div>
               <p className="text-emerald-500 text-[10px] mt-1 font-medium">▲ +14% crescimento</p>
             </div>
-            <div className="bg-[#09090b] border border-zinc-900 p-5 rounded-xl">
+            <div className="bg-[#09090b] border border-zinc-900 p-5 rounded-xl hover:border-zinc-800 transition">
               <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Capítulos Traduzidos</div>
-              <div className="text-2xl font-black text-white">{stats.capitulosTraduzidos}</div>
+              <div className="text-2xl font-black text-white">
+                {isLoading ? <div className="h-8 w-16 bg-zinc-800 animate-pulse rounded mt-1"></div> : stats.capitulosTraduzidos}
+              </div>
               <p className="text-zinc-500 text-[10px] mt-1 font-medium">No banco de dados</p>
             </div>
-            <div className="bg-[#09090b] border border-zinc-900 p-5 rounded-xl">
+            <div className="bg-[#09090b] border border-zinc-900 p-5 rounded-xl hover:border-zinc-800 transition">
               <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Membros (Staff)</div>
               <div className="text-2xl font-black text-white">12</div>
               <p className="text-zinc-500 text-[10px] mt-1 font-medium">3 T / 5 E / 4 C</p>
@@ -102,18 +148,18 @@ export default function AdminDashboard() {
           </section>
 
           {/* 3. ABAS DE NAVEGAÇÃO DE CONTEÚDO */}
-          <section className="bg-[#09090b] border border-zinc-900 rounded-xl overflow-hidden">
+          <section className="bg-[#09090b] border border-zinc-900 rounded-xl overflow-hidden shadow-2xl">
             {/* Headers das Abas */}
             <div className="flex border-b border-zinc-900">
               <button 
                 onClick={() => setActiveTab('desempenho')}
-                className={`px-6 py-4 text-sm font-bold uppercase tracking-wider transition ${activeTab === 'desempenho' ? 'text-white border-b-2 border-red-500 bg-zinc-900/30' : 'text-zinc-500 hover:text-zinc-300'}`}
+                className={`px-6 py-4 text-sm font-bold uppercase tracking-wider transition-colors ${activeTab === 'desempenho' ? 'text-white border-b-2 border-red-500 bg-zinc-900/30' : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900/10'}`}
               >
                 Desempenho (Obras)
               </button>
               <button 
                 onClick={() => setActiveTab('equipe')}
-                className={`px-6 py-4 text-sm font-bold uppercase tracking-wider transition ${activeTab === 'equipe' ? 'text-white border-b-2 border-red-500 bg-zinc-900/30' : 'text-zinc-500 hover:text-zinc-300'}`}
+                className={`px-6 py-4 text-sm font-bold uppercase tracking-wider transition-colors ${activeTab === 'equipe' ? 'text-white border-b-2 border-red-500 bg-zinc-900/30' : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900/10'}`}
               >
                 Equipe (Staff)
               </button>
@@ -132,12 +178,23 @@ export default function AdminDashboard() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-900">
-                    {obras.length === 0 ? (
-                      <tr><td colSpan="4" className="p-8 text-center text-zinc-600 text-xs uppercase tracking-widest">Nenhuma obra</td></tr>
+                    {/* Renderização Condicional: Loading vs Dados vs Vazio */}
+                    {isLoading ? (
+                      // Skeleton Loading (Placa de "Voltamos já")
+                      [...Array(3)].map((_, i) => (
+                        <tr key={i} className="animate-pulse">
+                          <td className="px-6 py-5"><div className="h-4 bg-zinc-800/50 rounded w-3/4"></div></td>
+                          <td className="px-6 py-5"><div className="h-4 bg-zinc-800/50 rounded w-1/4"></div></td>
+                          <td className="px-6 py-5"><div className="h-4 bg-zinc-800/50 rounded w-1/2"></div></td>
+                          <td className="px-6 py-5"><div className="h-6 bg-zinc-800/50 rounded w-16"></div></td>
+                        </tr>
+                      ))
+                    ) : obras.length === 0 ? (
+                      <tr><td colSpan="4" className="p-8 text-center text-zinc-600 text-xs uppercase tracking-widest">Nenhuma obra encontrada</td></tr>
                     ) : (
                       obras.map(obra => (
-                        <tr key={obra.id} className="hover:bg-zinc-900/20 transition group">
-                          <td className="px-6 py-4 font-semibold text-white group-hover:text-red-400 transition">{obra.titulo}</td>
+                        <tr key={obra.id} className="hover:bg-zinc-900/40 transition-colors group">
+                          <td className="px-6 py-4 font-semibold text-white group-hover:text-red-400 transition-colors">{obra.titulo}</td>
                           <td className="px-6 py-4 font-mono text-zinc-300">{obra.capitulos}</td>
                           <td className="px-6 py-4">
                             <div className="flex items-center space-x-1">
@@ -162,14 +219,17 @@ export default function AdminDashboard() {
               <div className="p-6">
                 <div className="grid gap-3">
                   {staff.map(member => (
-                    <div key={member.id} className="flex justify-between items-center p-4 bg-[#18181b] border border-zinc-800 rounded-lg hover:border-zinc-700 transition">
+                    <div key={member.id} className="flex justify-between items-center p-4 bg-[#0c0c0e] border border-zinc-800 rounded-lg hover:border-zinc-700 transition-colors">
                       <div>
                         <h4 className="text-white font-bold text-sm">{member.nome}</h4>
                         <span className="text-xs text-zinc-500">{member.funcao}</span>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <span className={`w-2 h-2 rounded-full ${member.status === 'Ativo' ? 'bg-emerald-500' : 'bg-zinc-600'}`}></span>
-                        <button className="text-xs text-zinc-500 hover:text-red-500 uppercase tracking-widest font-bold transition">Editar</button>
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                          <span className={`w-2 h-2 rounded-full ${member.status === 'Ativo' ? 'bg-emerald-500 animate-pulse' : 'bg-zinc-600'}`}></span>
+                          <span className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">{member.status}</span>
+                        </div>
+                        <button className="text-xs text-zinc-500 hover:text-red-500 uppercase tracking-widest font-bold transition-colors">Editar</button>
                       </div>
                     </div>
                   ))}
@@ -192,7 +252,8 @@ export default function AdminDashboard() {
             <h2 className="text-lg font-black text-white uppercase tracking-widest">Postar Capítulo</h2>
             <button 
               onClick={() => setIsDrawerOpen(false)}
-              className="text-zinc-500 hover:text-white p-2 transition"
+              className="text-zinc-500 hover:text-white p-2 transition-colors bg-zinc-900/50 hover:bg-zinc-800 rounded-md"
+              title="Fechar (Esc)"
             >
               ✕
             </button>
