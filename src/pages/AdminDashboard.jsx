@@ -1,13 +1,35 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import DragDropUploader from '../components/DragDropUploader';
+import { supabase } from '../supabaseClient';
 
 export default function AdminDashboard() {
-  const [obrasMock] = useState([
-    { id: 1, titulo: 'Solo Leveling: Arise', capitulos: 48, cliques: 890, status: 'Ativo' },
-    { id: 2, titulo: 'Omniscient Reader', capitulos: 12, cliques: 350, status: 'Ativo' },
-    { id: 3, titulo: 'The Beginning After', capitulos: 114, cliques: 0, status: 'Hiato' }
-  ]);
+  const [obras, setObras] = useState([]);
+  const [stats, setStats] = useState({ capitulosTraduzidos: 0 });
+
+  useEffect(() => {
+    async function fetchDashboardData() {
+      // Busca obras e o count de capitulos relacionalmente
+      const { data, error } = await supabase.from('obras').select('id, titulo, status, capitulos(id)');
+      if (data && !error) {
+         let totalCapitulos = 0;
+         const obrasComCount = data.map(o => {
+            const count = o.capitulos ? o.capitulos.length : 0;
+            totalCapitulos += count;
+            return {
+              id: o.id,
+              titulo: o.titulo,
+              status: o.status || 'Ativo',
+              capitulos: count,
+              cliques: Math.floor(Math.random() * 500) // Mock provisorio para a métrica do TikTok
+            };
+         });
+         setObras(obrasComCount);
+         setStats({ capitulosTraduzidos: totalCapitulos });
+      }
+    }
+    fetchDashboardData();
+  }, []);
 
   return (
     <div className="flex min-h-screen bg-black text-white font-sans">
@@ -66,7 +88,7 @@ export default function AdminDashboard() {
               <span className="text-xs font-bold uppercase tracking-wider">Capítulos Traduzidos</span>
               <span>📖</span>
             </div>
-            <div className="text-3xl font-black">342</div>
+            <div className="text-3xl font-black">{stats.capitulosTraduzidos}</div>
             <p className="text-zinc-500 text-xs mt-2 font-medium">Meta semanal: 85% concluída</p>
           </div>
 
@@ -101,7 +123,7 @@ export default function AdminDashboard() {
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-900">
-              {obrasMock.map(obra => (
+              {obras.map(obra => (
                 <tr key={obra.id} className="hover:bg-zinc-900/30 transition">
                   <td className="p-4 font-semibold text-white">{obra.titulo}</td>
                   <td className="p-4">{obra.capitulos}</td>

@@ -80,7 +80,7 @@ export default function DragDropUploader() {
           .from('manga-pages')
           .upload(filePath, file, {
             cacheControl: 'public, max-age=31536000, immutable',
-            upsert: true
+            upsert: false
           });
 
         if (storageError) throw storageError;
