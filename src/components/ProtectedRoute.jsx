@@ -8,7 +8,19 @@ export default function ProtectedRoute({ children }) {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
+      // 🛠️ MODO DE EMERGÊNCIA (DEV BYPASS)
+      // Força a liberação da rota Admin no localhost para o seu Gmail específico
+      if (!session && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+        console.warn('⚠️ Bypass de Admin ativado para 9919622diego@gmail.com');
+        setSession({ 
+          user: { 
+            email: '9919622diego@gmail.com', 
+            role: 'authenticated' 
+          } 
+        });
+      } else {
+        setSession(session);
+      }
       setLoading(false);
     });
 
@@ -29,9 +41,19 @@ export default function ProtectedRoute({ children }) {
     );
   }
 
+  // 1. Se não houver sessão ativa (nem pelo bypass), vai para o Login
   if (!session) {
     return <Navigate to="/login" replace />;
   }
 
+  // 2. Trava de Segurança Suprema: Apenas ESSE e-mail específico pode entrar no Admin
+  const adminEmail = '9919622diego@gmail.com';
+  if (session.user?.email !== adminEmail) {
+    console.warn(`Acesso negado para o e-mail: ${session.user?.email}`);
+    // Se um invasor logar com o Google dele, será expulso de volta para a página inicial
+    return <Navigate to="/" replace />;
+  }
+
+  // Passou em todas as travas, pode ver o painel
   return children;
 }
